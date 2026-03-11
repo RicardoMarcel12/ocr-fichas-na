@@ -151,36 +151,38 @@ The printed header block (organization name, course title, location/sede) provid
 
 ### Key Entities
 
-- **`FormData`**: Represents the complete extraction result for a single form image. Conforms to `Sendable`. Contains:
+- **`ImageFile`**: Canonical OCR+CSV domain model as defined in the project constitution. The OCR Reader populates each `ImageFile` instance with the raw key-value OCR payload extracted from its corresponding image. This remains the primary contract exposed to other features (e.g., CLI and CSV export).
+
+- **`FormData`** *(internal helper model)*: Represents the complete extraction result for a single form image as used inside the OCR Reader implementation. Conforms to `Sendable`. Contains:
   - `fileName: String` — base name of the source image.
   - `header: [String]` — recognized header/title lines from the top of the form (may be empty).
   - `fields: [FormField]` — ordered array of key-value pairs extracted from the form body.
   - `averageConfidence: Float` — mean confidence across all recognized observations.
 
-- **`FormField`**: A single key-value pair from the form. Conforms to `Sendable`. Contains:
+- **`FormField`** *(internal helper model)*: A single key-value pair from the form. Conforms to `Sendable`. Contains:
   - `key: String` — the printed label (colon stripped, trimmed).
   - `value: String` — the handwritten fill-in (trimmed, newlines sanitized).
   - `confidence: Float` — confidence score for the value recognition.
 
-- **`OCRProcessor`**: Conforms to `OCRProcessing` protocol. Encapsulates all Vision framework logic. Responsible for loading images, running `VNRecognizeTextRequest`, performing spatial analysis to pair labels with values, filtering empty fields, and assembling `FormData` objects.
+- **`OCRProcessor`**: Conforms to `OCRProcessing` protocol. Encapsulates all Vision framework logic. Responsible for loading images, running `VNRecognizeTextRequest`, performing spatial analysis to pair labels with values, filtering empty fields, and assembling and populating `ImageFile` objects with the extracted OCR payload (internally using `FormData`/`FormField` as needed).
 
-- **`OCRProcessing`** *(protocol)*: Defines the contract: `func process(imageURLs: [URL]) async throws -> [FormData]`.
+- **`OCRProcessing`** *(protocol)*: Defines the contract: `func process(imageURLs: [URL]) async throws -> [ImageFile]`.
 
 ## Relationship to Other Features
 
 - **Upstream dependency**: [CLI spec](../cli/spec.md) — provides the directory path and image URL list via `FileSystemManager`.
-- **Downstream consumer**: `CSVExporter` — will serialize `FormData` objects to CSV. The CSV format may need to adapt to the dynamic key-value structure (future spec).
-- **Future feature**: A **Standardization** stage will map diverse raw `FormData` structures to a canonical schema. This OCR Reader intentionally avoids any mapping logic to keep extraction and normalization decoupled.
+- **Downstream consumer**: `CSVExporter` — will serialize `ImageFile` objects (including their attached OCR key-value payload) to CSV. The CSV format may need to adapt to the dynamic key-value structure (future spec).
+- **Future feature**: A **Standardization** stage will map diverse raw OCR payloads (as attached to `ImageFile` instances) to a canonical schema. This OCR Reader intentionally avoids any mapping logic to keep extraction and normalization decoupled.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Processing the sample "Ficha de Inscripción" image produces a `FormData` with at least 8 non-empty key-value pairs (Nombre, Edad, Fecha y lugar de nacimiento, Centro de estudios, Lugar de Trabajo, Dirección de Casa, Teléfono, Celular, E-mail, Otras aficiones, Horario).
-- **SC-002**: The field `Carrera` (which is blank on the sample form) is absent from the output.
-- **SC-003**: Keys do not include trailing colons (e.g., `Nombre` not `Nombre:`).
-- **SC-004**: All `FormField.value` strings are free of `\n` and `\r` characters.
+- **SC-001**: Processing the sample "Ficha de Inscripción" image produces an `ImageFile` whose attached OCR payload contains at least 8 non-empty key-value pairs (Nombre, Edad, Fecha y lugar de nacimiento, Centro de estudios, Lugar de Trabajo, Dirección de Casa, Teléfono, Celular, E-mail, Otras aficiones, Horario).
+- **SC-002**: The field `Carrera` (which is blank on the sample form) is absent from the OCR payload for that `ImageFile`.
+- **SC-003**: Keys in the OCR payload do not include trailing colons (e.g., `Nombre` not `Nombre:`).
+- **SC-004**: All value strings in the OCR payload are free of `\n` and `\r` characters.
 - **SC-005**: Processing 20 images completes in under 60 seconds on an Apple Silicon Mac.
 - **SC-006**: An unreadable image file produces `AppError.imageLoadFailed` — not a crash.
 - **SC-007**: `swift build -c release` compiles with zero warnings under strict concurrency.
-- **SC-008**: Each `FormData` preserves the field order matching the top-to-bottom layout of the source form.
+- **SC-008**: For each `ImageFile`, the OCR payload preserves the field order matching the top-to-bottom layout of the source form.

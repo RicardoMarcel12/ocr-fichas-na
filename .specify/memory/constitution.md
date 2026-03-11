@@ -134,21 +134,25 @@ until the project is promoted to production scope.
 The canonical data model is the `ImageFile` struct, which MUST
 conform to `Sendable` and contain:
 
-| Property       | Type     | Description                        |
-|----------------|----------|------------------------------------|
-| `fileName`     | `String` | Base name of the source image file |
-| `detectedText` | `String` | OCR-extracted text (sanitized)     |
-| `confidence`   | `Float`  | Vision framework confidence score  |
+| Property        | Type                   | Description                                          |
+|-----------------|------------------------|------------------------------------------------------|
+| `fileName`      | `String`               | Base name of the source image file                   |
+| `ocrPayload`    | `[(key: String, value: String, confidence: Float)]` | Ordered key-value pairs extracted from the form, each with an individual confidence score |
+| `averageConfidence` | `Float`            | Mean confidence across all recognized observations   |
 
-CSV output MUST contain exactly three columns in this order:
+The `ocrPayload` array preserves the top-to-bottom field order of the
+source form. Keys MUST NOT include trailing colons. Values MUST NOT
+contain `\n` or `\r` characters.
 
-1. **File Name**
-2. **Detected Text** — all line breaks MUST be stripped or replaced
-   with a single space before writing.
-3. **Confidence Level**
-
-The first row MUST be a header row. Fields containing commas or
-quotes MUST be properly escaped per RFC 4180.
+CSV output MUST use a **pipe (`|`) delimiter** with **UTF-8 + BOM**
+encoding. The column layout MUST follow a **union-of-all-keys**
+strategy — every unique key found across all `ImageFile` objects
+becomes a column. Three priority columns (`Nombre`, `Email`,
+`Teléfono`) MUST always appear first (in that order); remaining
+columns follow in alphabetical order; a final `Average Confidence`
+column closes each row. The first row MUST be a header row. Fields
+MUST NOT be quoted; any pipe characters in field values MUST be
+stripped before writing.
 
 ## Development Workflow & Code Style
 
@@ -163,11 +167,7 @@ quotes MUST be properly escaped per RFC 4180.
 
 This constitution is the authoritative source of architectural and
 process rules for the **ocr-fichas-na** project. In any conflict
-between this document and ad-hoc decisions, this document 
-
- \
- 
- prevails.
+between this document and ad-hoc decisions, this document prevails.
 
 **Amendment procedure:**
 
