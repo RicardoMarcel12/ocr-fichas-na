@@ -53,7 +53,7 @@ SCRIPT_DIR="$(CDPATH="" cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 # Get all paths and variables from common functions
-eval $(get_feature_paths)
+eval "$(get_feature_paths)"
 
 NEW_PLAN="$IMPL_PLAN"  # Alias for compatibility with existing code
 AGENT_TYPE="${1:-}"
@@ -452,8 +452,8 @@ update_existing_agent_file() {
         # Handle Recent Changes section
         if [[ "$line" == "## Recent Changes" ]]; then
             echo "$line" >> "$temp_file"
-            # Add new change entry right after the heading
-            if [[ -n "$new_change_entry" ]]; then
+            # Add new change entry right after the heading, but avoid duplicates
+            if [[ -n "$new_change_entry" ]] && ! grep -Fqx -- "$new_change_entry" "$target_file"; then
                 echo "$new_change_entry" >> "$temp_file"
             fi
             in_changes_section=true

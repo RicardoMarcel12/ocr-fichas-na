@@ -7,7 +7,7 @@
 
 ## 1 · Overview
 
-The CSV Writer receives the collection of `FormData` objects produced by the OCR Reader and serializes them into a single, flat CSV file. Because forms are non-standard (each may contain different fields), the writer applies a **union-of-all-keys** column strategy — every unique key found across all processed forms becomes a column, and forms missing a given key receive an empty cell.
+The CSV Writer receives the collection of `ImageFile` objects produced by the OCR Reader and serializes them into a single, flat CSV file. Because forms are non-standard (each may contain different fields), the writer applies a **union-of-all-keys** column strategy — every unique key found across all processed forms becomes a column, and forms missing a given key receive an empty cell.
 
 Three **priority columns** (`Nombre`, `Email`, `Teléfono`) are always placed first (left-to-right) regardless of discovery order. The remaining columns follow in alphabetical order. A final `Average Confidence` column closes each row. No file-name tracing column is included.
 
@@ -49,7 +49,7 @@ The output uses **UTF-8 with BOM** encoding and a **pipe (`|`) delimiter** to av
 
 | ID | Requirement | Constitution Ref |
 |----|-------------|-----------------|
-| FR-001 | The writer **SHALL** iterate all `FormData` objects and collect every unique `FormField.key` into a deduplicated set. | — |
+| FR-001 | The writer **SHALL** iterate all `ImageFile` objects and collect every unique key from each `ocrPayload` into a deduplicated set. | — |
 | FR-002 | The writer **SHALL** place three priority columns first, in this fixed order: `Nombre`, `Email`, `Teléfono`. If a priority key is absent from the entire dataset, its column **SHALL** still appear with empty cells in every row. | — |
 | FR-003 | All remaining columns **SHALL** be sorted alphabetically (locale-insensitive, Unicode ordinal) and appended after the priority columns. | — |
 | FR-004 | The final column **SHALL** always be `Average Confidence`. | — |
@@ -58,9 +58,9 @@ The output uses **UTF-8 with BOM** encoding and a **pipe (`|`) delimiter** to av
 
 | ID | Requirement | Constitution Ref |
 |----|-------------|-----------------|
-| FR-005 | Each `FormData` object **SHALL** produce exactly one row. | — |
-| FR-006 | For each column, the writer **SHALL** look up the matching `FormField.value` by key. If no matching field exists for that form, the cell **SHALL** be empty. | — |
-| FR-007 | The `Average Confidence` cell **SHALL** contain the `FormData.averageConfidence` value formatted as a decimal with **2 decimal places** (e.g., `0.87`). | — |
+| FR-005 | Each `ImageFile` object **SHALL** produce exactly one row. | — |
+| FR-006 | For each column, the writer **SHALL** look up the matching value from the `ImageFile.ocrPayload` by key. If no matching entry exists for that form, the cell **SHALL** be empty. | — |
+| FR-007 | The `Average Confidence` cell **SHALL** contain the `ImageFile.averageConfidence` value formatted as a decimal with **2 decimal places** (e.g., `0.87`). | — |
 | FR-008 | Field values **SHALL** be sanitized: newline characters (`\n`, `\r`, `\r\n`) replaced with a single space. | Principle VI |
 | FR-009 | If a field value contains the pipe delimiter (`\|`), it **SHALL** be stripped (removed) from the value since pipe is guaranteed to never be intentional content. | — |
 
@@ -87,7 +87,7 @@ The output uses **UTF-8 with BOM** encoding and a **pipe (`|`) delimiter** to av
 
 | ID | Requirement | Constitution Ref |
 |----|-------------|-----------------|
-| FR-019 | The `CSVExporter` struct/class **SHALL** conform to the `CSVExporting` protocol with at minimum: `func export(results: [FormData], to outputPath: URL) throws`. | Principle II |
+| FR-019 | The `CSVExporter` struct/class **SHALL** conform to the `CSVExporting` protocol with at minimum: `func export(results: [ImageFile], to outputPath: URL) throws`. | Principle II |
 | FR-020 | `CSVExporter` **SHALL** be `Sendable`. | Principle I |
 | FR-021 | Errors **SHALL** use `AppError.csvWriteFailed` with contextual messages (e.g., "Cannot write to /path: directory does not exist"). | Principle IV |
 
@@ -109,7 +109,7 @@ The output uses **UTF-8 with BOM** encoding and a **pipe (`|`) delimiter** to av
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
 │ OCR Reader   │────▶│  CSV Writer   │────▶│  .csv file   │
-│ [FormData]   │     │  CSVExporter  │     │  UTF-8 + BOM │
+│ [ImageFile]  │     │  CSVExporter  │     │  UTF-8 + BOM │
 └─────────────┘     └──────────────┘     └──────────────┘
                             │
                     ┌───────┴────────┐
