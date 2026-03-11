@@ -1,6 +1,6 @@
-# Code Review Checklist — ocr-fichas-na
+# Code Review Checklist — ocr-fichas-na Constitution Compliance
 
-When reviewing a pull request for this project, verify each of the following items. The PR **MUST NOT** be merged until every applicable item is confirmed.
+When reviewing a pull request for this project, verify each of the following items derived from the [project constitution](.specify/memory/constitution.md). The PR **MUST NOT** be merged until every applicable item is confirmed.
 
 ---
 
@@ -13,10 +13,10 @@ When reviewing a pull request for this project, verify each of the following ite
 
 ## Principle II — Protocol-Oriented Architecture
 
-- [ ] The main module boundaries (file system access, OCR, and CSV/export) are clearly separated in the codebase.
-- [ ] Where those boundaries need to be swappable or mockable, they are expressed via protocols whose names match the actual implementation.
-- [ ] The CLI entry point uses `ParsableCommand` from Swift Argument Parser (or `AsyncParsableCommand` if/when the project is migrated to async commands).
-- [ ] Object-Oriented and Protocol-Oriented patterns are the primary paradigms; free functions are used only for trivial, stateless utilities (e.g. a pure string-formatting helper); protocol abstractions are introduced when they provide clear, concrete benefits such as testability (mock/stub injection) or substitution (alternative implementations).
+- [ ] The three protocol-driven boundaries are respected: **`FileSystemManaging`**, **`OCRProcessing`**, **`CSVExporting`**.
+- [ ] The CLI entry point uses `AsyncParsableCommand` from Swift Argument Parser.
+- [ ] Object-Oriented and Protocol-Oriented patterns are the primary paradigms; free functions are used only for trivial utilities.
+- [ ] No new component is introduced without a corresponding protocol abstraction.
 
 ## Principle III — Structured Concurrency & Performance
 
@@ -27,16 +27,16 @@ When reviewing a pull request for this project, verify each of the following ite
 
 ## Principle IV — Robust Error Handling
 
-- [ ] Errors use the project's established error model (e.g. `ScanError` and standard Swift/Foundation errors) rather than referencing unused or fictional types.
-- [ ] All custom error types conform to `Swift.Error` and are well-defined (e.g. `enum`/`struct`), with cases that clearly describe the failure conditions.
-- [ ] No stringly-typed or ad-hoc error types (e.g. bare `String` or loosely structured dictionaries) are introduced.
+- [ ] All errors are expressed through the unified `AppError` enum conforming to `Swift.Error`.
+- [ ] `AppError` includes at minimum: `notADirectory`, `fileSizeUnavailable`, `ocrFailed`, `imageLoadFailed`, `csvWriteFailed`.
+- [ ] No stringly-typed or ad-hoc error types are introduced.
 - [ ] Errors propagate to the CLI layer and produce **human-readable messages on `stderr`**.
 - [ ] `Result` types are used at API boundaries where explicit success/failure semantics are needed.
 
 ## Principle V — Minimal Dependencies
 
 - [ ] The only external package dependency is `apple/swift-argument-parser`.
-- [ ] When OCR functionality is implemented, it MUST be performed exclusively through the native Apple **Vision** framework (`VNRecognizeTextRequest`).
+- [ ] OCR is performed exclusively through the native Apple **Vision** framework (`VNRecognizeTextRequest`).
 - [ ] No third-party OCR, image-processing, or CSV libraries have been added.
 
 ## Principle VI — Clean Code & Swift API Design Guidelines
@@ -55,13 +55,18 @@ When reviewing a pull request for this project, verify each of the following ite
 
 ## Data Model & Output Contract
 
-- [ ] `ImageFile` struct conforms to `Sendable` and contains exactly the properties: `directory: String` (parent directory path), `filename: String` (file name with extension), `size: Int64` (file size in bytes), `status: String` (e.g. `"pending"`).
-- [ ] CSV output contains exactly four columns in order: **directory**, **filename**, **size**, **status**.
-- [ ] The first row is a header row with the column names `directory,filename,size,status`.
+- [ ] `ImageFile` struct conforms to `Sendable` and contains exactly: `fileName: String`, `detectedText: String`, `confidence: Float`.
+- [ ] CSV output contains exactly three columns in order: **File Name**, **Detected Text**, **Confidence Level**.
+- [ ] The first row is a header row.
+- [ ] All line breaks in detected text are stripped or replaced with a single space before writing.
 - [ ] Fields containing commas or quotes are properly escaped per **RFC 4180**.
 
 ## Development Workflow & Code Style
 
 - [ ] The project uses **Swift Package Manager** exclusively; no Xcode project files (`.xcodeproj`, `.xcworkspace`) are committed.
-- [ ] `swift build -Xswiftc -strict-concurrency=complete` succeeds with **zero warnings**.
-- [ ] The PR includes a brief **compliance note** confirming adherence to all seven Core Principles.
+- [ ] `swift build` succeeds with **zero warnings** under `-strict-concurrency=complete`.
+- [ ] The PR includes a brief **constitution-compliance note** confirming adherence to all seven Core Principles.
+
+---
+
+> **Reminder:** In any conflict between ad-hoc decisions and the constitution, the constitution prevails. If a principle needs changing, follow the amendment procedure (PR to modify the constitution, reviewed by all active contributors, version incremented per SemVer).
