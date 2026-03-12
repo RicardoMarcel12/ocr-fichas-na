@@ -48,7 +48,7 @@ As a user, after the tool completes processing, I want to see a summary line sho
 
 1. **Given** a directory with 50 image files and all files are processed successfully, **When** processing completes, **Then** the output displays "50/50 files processed".
 2. **Given** a directory with 50 image files and 5 files fail during processing, **When** processing completes, **Then** the output displays "45/50 files processed".
-3. **Given** an empty directory (no image files), **When** the user runs the tool, **Then** the output displays "0/0 files processed" (or an appropriate message indicating no files were found).
+3. **Given** an empty directory (no image files), **When** the user runs the tool, **Then** the output displays "0/0 files processed".
 
 ---
 
@@ -104,7 +104,7 @@ As a user, when errors occur during processing, I want those errors to also be w
 - **FR-002**: The progress bar MUST update after each individual file is processed, reflecting the ratio of completed files to total files.
 - **FR-003**: Upon completion of all file processing, the system MUST display a summary line in the format "{successful}/{total} files processed" (e.g., "45/50 files processed").
 - **FR-004**: When an error occurs during the processing of a file, the system MUST print a human-readable error message to stderr that includes the filename and a description of the error.
-- **FR-005**: When an error occurs during the processing of a file, the system MUST write an entry to an `error.log` file in the target directory containing a UTC timestamp in ISO 8601 format with Z suffix (e.g., `2026-03-10T14:30:00Z`), the filename, and a human-readable error description.
+- **FR-005**: When an error occurs during the processing of a file, the system MUST attempt to write an entry to an `error.log` file in the target directory containing a UTC timestamp in ISO 8601 format with Z suffix (e.g., `2026-03-10T14:30:00Z`), the filename, and a human-readable error description. If the `error.log` file is not writable, the system MUST still display the error on stderr and warn the user that the log file could not be written (see also FR-010).
 - **FR-006**: The system MUST continue processing remaining files after encountering an error on any individual file (graceful degradation; no early termination).
 - **FR-007**: If an `error.log` file already exists in the target directory, the system MUST append new error entries rather than overwriting the file.
 - **FR-008**: If no errors occur during a processing run, the system MUST NOT create or modify an `error.log` file.
@@ -126,7 +126,7 @@ As a user, when errors occur during processing, I want those errors to also be w
 
 - **SC-001**: Users can see processing progress at all times during execution—the progress indicator updates at least once per file processed.
 - **SC-002**: Upon completion, users can determine the success rate of a processing run within 2 seconds by reading the summary line (e.g., "45/50 files processed").
-- **SC-003**: When file processing errors occur, 100% of errors are reported both to the terminal (stderr) and to the `error.log` file.
+- **SC-003**: When file processing errors occur, 100% of errors are reported to the terminal (stderr), and the system attempts to append each error to the `error.log` file, emitting a warning to stderr if the log is not writable.
 - **SC-004**: Each error message is actionable—it identifies the specific file that failed and describes the problem in terms the user can act on (e.g., "Permission denied", "Unreadable image format").
 - **SC-005**: The tool processes all files in the directory regardless of individual file failures—no files are silently skipped without reporting.
 - **SC-006**: The `error.log` file preserves error history across multiple runs, enabling users to track recurring issues over time.
@@ -138,7 +138,6 @@ As a user, when errors occur during processing, I want those errors to also be w
 - Error messages follow a consistent format: `[TIMESTAMP] ERROR: filename — description`.
 - The `error.log` file uses plain text format (one entry per line or block) for easy reading with standard tools (cat, grep, tail).
 - "Processed successfully" means the file completed the full OCR and CSV-writing pipeline without throwing an error.
-- The progress bar is implemented using a minimal custom renderer with ANSI escape codes (`\r` carriage return for in-place line updates). No external dependency is required.
 - Timestamps in error log entries use UTC in ISO 8601 format with Z suffix (`2026-03-10T14:30:00Z`).
 - The tool uses two exit codes: 0 (all files processed successfully) and 1 (one or more files failed). The CSV output file is always written with successful results regardless of exit code.
 - On SIGINT (Ctrl+C), the tool performs a graceful shutdown: flushes pending `error.log` entries to disk, then exits. No attempt is made to complete in-progress file processing.
@@ -147,8 +146,14 @@ As a user, when errors occur during processing, I want those errors to also be w
 
 ### Session 2026-03-10
 
-- Q: What progress bar implementation strategy should be used? → A: Build a minimal custom progress bar using ANSI escape codes (`\r` carriage return for in-place updates). No external dependency.
+- Q: What progress bar implementation strategy should be used? → A: Build a minimal custom progress bar with in-place line updates. No external dependency.
 - Q: How should the progress bar behave when output is not a TTY (e.g., piped)? → A: Silent — suppress the progress bar entirely when not a TTY; only print the final summary line.
 - Q: What timezone should error log timestamps use? → A: UTC — all timestamps in ISO 8601 UTC format with Z suffix (e.g., `2026-03-10T14:30:00Z`).
 - Q: What exit code should the tool return on partial failure? → A: Exit 0 only if all files succeed; exit 1 if any file fails. The CSV output file is always produced with whatever files succeeded, regardless of failures.
 - Q: How should the tool handle Ctrl+C / SIGINT? → A: Trap SIGINT, flush pending `error.log` entries to disk, then exit immediately.
+
+### Implementation Notes
+
+> The following notes capture implementation-specific decisions from the Q&A session above. They are informational and **not** normative requirements. Implementations are free to use alternative approaches provided the observable behavior matches the requirements.
+
+- **Progress bar rendering**: A minimal custom renderer using ANSI escape codes (`\r` carriage return for in-place line updates) was agreed upon. No external dependency is required.
