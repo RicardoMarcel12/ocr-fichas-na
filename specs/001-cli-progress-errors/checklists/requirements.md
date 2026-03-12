@@ -6,9 +6,9 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
+- [ ] No implementation details (languages, frameworks, APIs)
 - [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
+- [ ] Written for non-technical stakeholders
 - [x] All mandatory sections completed
 
 ## Requirement Completeness
@@ -27,10 +27,10 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+- [ ] No implementation details leak into specification
 
 ## Notes
 
-- All items pass validation. Spec is ready for `/speckit.clarify` or `/speckit.plan`.
+- The spec references implementation-specific details (ANSI escape codes, in-place rendering via `\r`, TTY detection, SIGINT handling) that have been relocated to an "Implementation Notes" section in spec.md. The checklist items for "No implementation details" and "No implementation details leak into specification" remain unchecked until those details are fully removed from normative requirements or the stakeholder scope is confirmed to include technical readers.
 - Assumptions section documents reasonable defaults for error format (ISO 8601 timestamps), log file format (plain text), and progress granularity (per-file updates).
 - No [NEEDS CLARIFICATION] markers were needed — the user's description was sufficiently detailed and reasonable defaults were applied for unspecified details.
