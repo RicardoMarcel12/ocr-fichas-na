@@ -97,8 +97,8 @@ A user runs `ocr-fichas-na --help` or `ocr-fichas-na -h` to see usage instructio
 
 - What happens when the directory path contains spaces or special characters? → The tool must handle them correctly.
 - What happens when the directory path is a symlink to a directory? → The tool should follow the symlink and scan the target directory.
-- What happens when the user has no read permission on the directory? → The tool must surface a human-readable error message on stderr.
-- What happens on case-sensitive vs. case-insensitive file systems? → Image extension matching must be case-insensitive (`.JPG`, `.Png`, etc.).
+- What happens when the user has no read permission on the directory? → The tool surfaces a human-readable error message on stderr and exits with code `1` (see FR-010).
+- What happens on case-sensitive vs. case-insensitive file systems? → Image extension matching is deferred to the scanning/pipeline feature; the CLI entry point does not perform file enumeration.
 
 ## Requirements *(mandatory)*
 
@@ -111,9 +111,9 @@ A user runs `ocr-fichas-na --help` or `ocr-fichas-na -h` to see usage instructio
 - **FR-005**: The CLI MUST validate that the resolved path is an existing directory; if not, it MUST print a human-readable error to stderr and exit with code `1`.
 - **FR-006**: The CLI MUST use `ocr-fichas-na` as the command name.
 - **FR-007**: The CLI MUST include a human-readable description and usage information accessible via `--help`.
-- **FR-008**: The CLI MUST conform to `AsyncParsableCommand` (from Swift Argument Parser) with a `mutating func run() async throws` entry point. In this feature, `run()` MUST only resolve the target path, validate it is an existing directory, and print `Scanning: <path>` to stdout. It MUST NOT trigger the scan/CSV pipeline; pipeline integration is deferred to a later feature.
+- **FR-008**: The CLI MUST provide an async entry point. On invocation, the entry point MUST resolve the target path, validate it is an existing directory, and print `Scanning: <path>` to stdout. It MUST NOT trigger the scan/CSV pipeline; pipeline integration is deferred to a later feature.
 - **FR-009**: The project MUST include documentation on how to build and install the tool for global availability.
-- **FR-010**: All application-level errors (e.g., invalid directory, permission errors) MUST exit with code `1`. Argument parsing and validation failures are handled by Swift Argument Parser using its own exit codes; the application MUST NOT override them.
+- **FR-010**: All application-level errors (e.g., invalid directory, permission errors) MUST exit with code `1`. Argument parsing and validation failures are handled by the argument parsing framework using its own exit codes; the application MUST NOT override them.
 
 ### Non-Functional Requirements
 
@@ -126,6 +126,15 @@ A user runs `ocr-fichas-na --help` or `ocr-fichas-na -h` to see usage instructio
 - **`OcrFichasNa`**: The main entry-point command. Owns the `directory` argument and `here` flag. Follows the Single Responsibility Principle: its only responsibilities are argument parsing, path resolution, and directory validation. It MUST NOT handle configuration loading, logging infrastructure, output formatting, or pipeline orchestration. Pipeline orchestration (scan + CSV export) is deferred to a later integration feature.
 - **`AppError`**: Minimal error type introduced in this feature containing only the `notADirectory` case — raised when the user provides a path that is not a valid directory. `ScanError` remains untouched; spec 002 will handle its migration into `AppError` later.
 
+## Implementation Notes *(non-normative)*
+
+> These notes are intended for implementers and do not constitute normative requirements.
+
+- **Async entry point**: FR-008's async entry-point requirement is satisfied by conforming `OcrFichasNa` to `AsyncParsableCommand` (Swift Argument Parser) with a `mutating func run() async throws` signature.
+- **AppError**: A minimal error type containing only the `notADirectory` case is sufficient for this feature. `ScanError` migration is deferred to spec 002.
+- **Exit code delegation**: FR-010's exit-code behaviour for argument-parsing failures is delegated to the Swift Argument Parser framework; application code MUST NOT call `exit()` directly for parse errors.
+- **Concurrency**: NFR-001 and NFR-002 correspond to Swift 6 strict-concurrency mode. All command state should use value types or actor-isolated references.
+
 ## Out of Scope
 
 - **Scan/CSV pipeline wiring**: `run()` does not invoke `ImageScanner`, `CSVWriter`, or any downstream processing. Pipeline integration will be addressed in a dedicated future feature.
@@ -136,7 +145,7 @@ A user runs `ocr-fichas-na --help` or `ocr-fichas-na -h` to see usage instructio
 
 ## Assumptions
 
-- The tool targets macOS and Linux environments with standard POSIX-compatible shells.
+- The tool currently targets macOS 13+ environments. Linux support is a future goal that would require build toolchain and manifest changes.
 - The user has a working build toolchain installed (e.g., Swift toolchain for this project).
 - Directory paths provided by the user are on locally-mounted file systems (network mounts are not explicitly supported).
 - The tool follows symlinks by default when resolving directory paths.
