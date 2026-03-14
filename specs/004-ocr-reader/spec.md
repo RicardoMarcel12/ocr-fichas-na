@@ -143,13 +143,13 @@ The printed header block (organization name, course title, location/sede) provid
 - **FR-006**: Key-value pairs where the value is empty, whitespace-only, or below the minimum confidence threshold MUST be excluded from the output. The threshold is controlled by a CLI flag `--min-confidence` (type: `Double`, default: `0.25`). The flag is passed through to `OCRProcessor` at initialization.
 - **FR-007**: Each processed image MUST produce a `FormData` object containing: the source file name, an optional header (top-of-form metadata), an ordered array of `FormField` key-value pairs, and an overall average confidence score.
 - **FR-008**: The `FormData` fields MUST preserve the spatial reading order (top-to-bottom, left-to-right) as recognized from the image.
-- **FR-009**: The OCR reader MUST conform to the `OCRProcessing` protocol (Constitution Principle II): `func process(imageURLs: [URL]) async throws -> [FormData]`.
+- **FR-009**: The OCR reader MUST conform to the `OCRProcessing` protocol (Constitution Principle II): `func process(imageURLs: [URL]) async throws -> [FormData]`. The method throws only for fatal, process-level errors (e.g., the `imageURLs` array is empty, or all images fail to load leaving no results to return). Per-image load failures (FR-011) and per-image OCR failures (FR-012) are NOT surfaced as throws — they are logged and processing continues for remaining images.
 - **FR-010**: Parallel image processing MUST use structured concurrency with a maximum concurrent task count equal to `min(ProcessInfo.processInfo.activeProcessorCount, 8)` (i.e., the system's active CPU core count, capped at 8). This replaces the previous "4–8" range with a deterministic, hardware-adaptive value.
 - **FR-011**: If an image cannot be loaded from a URL, the system MUST report the failure using the shared error model from spec 002 with severity `ERROR`, pipeline stage `image-loading`, the affected file path, and a human-readable description. The error MUST be logged to `error.log` and processing MUST continue for remaining images.
 - **FR-012**: If the OCR request fails, the system MUST report the failure using the shared error model from spec 002 with severity `ERROR`, pipeline stage `ocr-recognition`, the affected file path, and a description including the underlying error. The error MUST be logged to `error.log` and processing MUST continue for remaining images.
 - **FR-013**: All recognized text MUST be sanitized: leading/trailing whitespace trimmed, internal newlines replaced with a single space.
 - **FR-014**: The system MUST NOT attempt to normalize, standardize, or map extracted fields to any predefined schema — raw extraction only. Standardization is deferred to a separate future feature.
-- **FR-015**: The header block MUST be identified by treating the first 3–5 recognized text blocks (sorted by vertical position, top-to-bottom) that appear before the first detected label (text ending with `:`) as header candidates. These are stored in `FormData.header`. If no label is found, all text blocks are treated as form body with an empty header.
+- **FR-015**: The header block MUST be identified by treating the first 3–5 recognized text blocks (sorted by vertical position, top-to-bottom) that appear before the first detected label (as defined in FR-005) as header candidates. These are stored in `FormData.header`. If no label is found, all text blocks are treated as form body with an empty header.
 
 ### Non-Functional Requirements
 
@@ -208,7 +208,7 @@ The printed header block (organization name, course title, location/sede) provid
 
 ### Measurable Outcomes
 
-- **SC-001**: Processing the sample "Ficha de Inscripción" image produces a `FormData` with at least 8 non-empty key-value pairs (Nombre, Edad, Fecha y lugar de nacimiento, Centro de estudios, Lugar de Trabajo, Dirección de Casa, Teléfono, Celular, E-mail, Otras aficiones, Horario).
+- **SC-001**: Processing the sample "Ficha de Inscripción" image produces a `FormData` with at least 8 non-empty key-value pairs, such as: Nombre, Edad, Fecha y lugar de nacimiento, Centro de estudios, Lugar de Trabajo, Dirección de Casa, Teléfono, Celular, E-mail, Otras aficiones, Horario.
 - **SC-002**: The field `Carrera` (which is blank on the sample form) is absent from the output.
 - **SC-003**: Keys do not include trailing colons (e.g., `Nombre` not `Nombre:`).
 - **SC-004**: All `FormField.value` strings are free of `\n` and `\r` characters.
