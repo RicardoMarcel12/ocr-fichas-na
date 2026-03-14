@@ -10,15 +10,17 @@ The target documents are **registration forms** ("fichas de inscripción") from 
 
 ### Key Capabilities
 
-- **OCR Key-Value Extraction** — Detects printed labels and their adjacent handwritten values using spatial analysis of recognized text blocks.
-- **Non-Standard Form Support** — Extracts whatever fields are present on each form without requiring a predefined schema. Raw per-form structure is preserved for a later standardization stage.
-- **Empty Field Filtering** — Fields with no handwritten value (or values below a configurable confidence threshold) are automatically discarded.
-- **Header Detection** — Captures top-of-form metadata (organization name, course title, location) separately from the form body.
-- **Parallel Processing** — Uses structured concurrency to process multiple images concurrently, throttled to `min(CPU cores, 8)` tasks.
-- **CLI Progress Reporting** — Displays a visual progress bar (0%–100%) during processing and a summary line on completion (e.g., `45/50 files processed`).
-- **Unified Error Model** — All errors across every pipeline stage are captured in a single `error.log` file with consistent structured format and severity classification.
-- **Graceful Degradation** — Individual file failures do not stop the batch; the tool continues processing remaining files and always produces a CSV with successful results.
-- **Crash-Safe Error Logging** — Error entries are flushed to disk immediately, preserving diagnostics even after SIGINT or unexpected termination.
+> **Note:** This project is a work-in-progress POC. Capabilities marked *(planned)* are specified and designed but not yet implemented in `Sources/`.
+
+- **OCR Key-Value Extraction** *(planned)* — Detects printed labels and their adjacent handwritten values using spatial analysis of recognized text blocks.
+- **Non-Standard Form Support** *(planned)* — Extracts whatever fields are present on each form without requiring a predefined schema. Raw per-form structure is preserved for a later standardization stage.
+- **Empty Field Filtering** *(planned)* — Fields with no handwritten value (or values below a configurable confidence threshold) are automatically discarded.
+- **Header Detection** *(planned)* — Captures top-of-form metadata (organization name, course title, location) separately from the form body.
+- **Parallel Processing** *(planned)* — Uses structured concurrency to process multiple images concurrently, throttled to `min(CPU cores, 8)` tasks.
+- **CLI Progress Reporting** *(planned)* — Displays a visual progress bar (0%–100%) during processing and a summary line on completion (e.g., `45/50 files processed`).
+- **Unified Error Model** *(planned)* — All errors across every pipeline stage are captured in a single `error.log` file with consistent structured format and severity classification.
+- **Graceful Degradation** *(planned)* — Individual file failures do not stop the batch; the tool continues processing remaining files and always produces a CSV with successful results.
+- **Crash-Safe Error Logging** *(planned)* — Error entries are flushed to disk immediately, preserving diagnostics even after SIGINT or unexpected termination.
 
 ## Requirements
 
@@ -97,7 +99,7 @@ JPEG, PNG, TIFF, HEIC — any format supported by the platform's image loading A
 
 | File | Location | Description |
 |---|---|---|
-| `image-list.csv` | Input directory | CSV containing extracted form data for all successfully processed files (RFC 4180 format). |
+| `output.csv` | Input directory | Pipe-delimited (`|`) CSV with UTF-8+BOM encoding containing extracted form data for all successfully processed files. Uses a union-of-all-keys column strategy; fields are not quoted. |
 | `error.log` | Input directory (fallback: CWD) | Created only when errors occur. Append-only log of all pipeline errors. |
 
 ## How It Works
@@ -246,10 +248,10 @@ No other external dependencies. The project follows a minimal-dependency philoso
 ## Architecture Principles
 
 - **Swift 6 Strict Concurrency** — All types conform to `Sendable`; complete concurrency checking is enabled. Zero warnings in release builds.
-- **Protocol-Oriented Design** — Key components conform to protocols (e.g., `OCRProcessing`: `func process(imageURLs: [URL]) async throws -> [FormData]`) for testability and extensibility.
+- **Protocol-Oriented Design** — Key components conform to protocols (e.g., `OCRProcessing`: `func process(imageURLs: [URL]) async throws -> [ImageFile]`) for testability and extensibility.
 - **Structured Concurrency** — Parallel image processing via Swift concurrency with hardware-adaptive task throttling. OCR work never blocks the main thread.
 - **Single Responsibility** — The CLI layer handles only argument parsing, path resolution, and validation. Pipeline orchestration is a separate concern.
-- **Shared Error Model** — One unified error type used by all pipeline components. The legacy `ScanError` enum is removed; all call sites use the shared model directly.
+- **Shared Error Model** *(planned)* — One unified error type used by all pipeline components. The legacy `ScanError` enum will be removed (spec 002); all call sites will use the shared model directly.
 - **Single-Threaded Error Writes** — Error entries are written serially from the main processing loop. No locking required. Concurrency support deferred to a future iteration.
 - **Extensible Design** — Adding a new pipeline stage requires only a new enum case; the error entry structure, logging mechanism, and persistence layer remain unchanged.
 

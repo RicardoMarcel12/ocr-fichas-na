@@ -257,6 +257,9 @@ get_commands_for_language() {
         *"JavaScript"*|*"TypeScript"*)
             echo "npm test \\&\\& npm run lint"
             ;;
+        *"Swift"*)
+            echo "swift build -c release && swift build -Xswiftc -strict-concurrency=complete"
+            ;;
         *)
             echo "# Add commands for $lang"
             ;;
