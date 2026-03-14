@@ -143,8 +143,8 @@ The printed header block (organization name, course title, location/sede) provid
 - **FR-006**: Key-value pairs where the value is empty, whitespace-only, or below the minimum confidence threshold MUST be excluded from the output. The threshold is controlled by a CLI flag `--min-confidence` (type: `Double`, default: `0.25`). The flag is passed through to `OCRProcessor` at initialization.
 - **FR-007**: Each processed image MUST produce a `FormData` object containing: the source file name, an optional header (top-of-form metadata), an ordered array of `FormField` key-value pairs, and an overall average confidence score.
 - **FR-008**: The `FormData` fields MUST preserve the spatial reading order (top-to-bottom, left-to-right) as recognized from the image.
-- **FR-009**: The OCR reader MUST conform to the `OCRProcessing` protocol (Constitution Principle II): `func process(imageURLs: [URL]) async throws -> [FormData]`. The method throws only for fatal, process-level errors (e.g., the `imageURLs` array is empty, or all images fail to load leaving no results to return). Per-image load failures (FR-011) and per-image OCR failures (FR-012) are NOT surfaced as throws — they are logged and processing continues for remaining images.
-- **FR-010**: Parallel image processing MUST use structured concurrency with a maximum concurrent task count equal to `min(ProcessInfo.processInfo.activeProcessorCount, 8)` (i.e., the system's active CPU core count, capped at 8). This replaces the previous "4–8" range with a deterministic, hardware-adaptive value.
+- **FR-009**: The OCR reader MUST conform to the `OCRProcessing` protocol (Constitution Principle II): `func process(imageURLs: [URL]) async throws -> [ImageFile]`. The method throws only for fatal, process-level errors (e.g., the `imageURLs` array is empty, or all images fail to load leaving no results to return). Per-image load failures (FR-011) and per-image OCR failures (FR-012) are NOT surfaced as throws — they are logged and processing continues for remaining images.
+- **FR-010**: Parallel image processing MUST use structured concurrency with a maximum concurrent task count equal to `min(ProcessInfo.processInfo.activeProcessorCount, 8)` (i.e., the system's active CPU core count, capped at 8), consistent with Constitution Principle III.
 - **FR-011**: If an image cannot be loaded from a URL, the system MUST report the failure using the shared error model from spec 002 with severity `ERROR`, pipeline stage `image-loading`, the affected file path, and a human-readable description. The error MUST be logged to `error.log` and processing MUST continue for remaining images.
 - **FR-012**: If the OCR request fails, the system MUST report the failure using the shared error model from spec 002 with severity `ERROR`, pipeline stage `ocr-recognition`, the affected file path, and a description including the underlying error. The error MUST be logged to `error.log` and processing MUST continue for remaining images.
 - **FR-013**: All recognized text MUST be sanitized: leading/trailing whitespace trimmed, internal newlines replaced with a single space.
@@ -173,9 +173,9 @@ The printed header block (organization name, course title, location/sede) provid
   - `value: String` — the handwritten fill-in (trimmed, newlines sanitized).
   - `confidence: Float` — confidence score for the value recognition.
 
-- **`OCRProcessor`**: Conforms to `OCRProcessing` protocol. Encapsulates all OCR logic. Initialized with `minConfidence: Double` (default `0.25`). Responsible for loading images, running text recognition, performing spatial analysis to pair labels with values, filtering empty fields and low-confidence values, and assembling `FormData` objects.
+- **`OCRProcessor`**: Conforms to `OCRProcessing` protocol. Encapsulates all OCR logic. Initialized with `minConfidence: Double` (default `0.25`). Responsible for loading images, running text recognition, performing spatial analysis to pair labels with values, filtering empty fields and low-confidence values, assembling `FormData` objects internally, and populating `ImageFile` objects with the extracted OCR payload for the output contract.
 
-- **`OCRProcessing`** *(protocol)*: Defines the contract: `func process(imageURLs: [URL]) async throws -> [FormData]`.
+- **`OCRProcessing`** *(protocol)*: Defines the contract: `func process(imageURLs: [URL]) async throws -> [ImageFile]`. `FormData` and `FormField` are internal helper types used within `OCRProcessor`; they are not part of the public protocol boundary.
 
 ## Out of Scope
 

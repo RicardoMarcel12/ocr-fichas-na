@@ -10,7 +10,7 @@
 ### Session 2026-03-11
 
 - Q: Should `OcrFichasNa` conform to `AsyncParsableCommand` (async from day one) or start with synchronous `ParsableCommand` and migrate later? → A: Convert to `AsyncParsableCommand` now — async entry point from day one with `mutating func run() async throws`.
-- Q: Should `AppError` absorb `ScanError` cases now, or remain minimal with only `notADirectory` for this feature? → A: Introduce minimal `AppError` with only the `notADirectory` case in this feature; leave `ScanError` untouched for spec 002 to migrate later.
+- Q: Should `AppError` absorb `ScanError` cases now, or remain minimal with only `notADirectory` for this feature? → A: Introduce minimal `AppError` with only the `notADirectory` case in this feature. The existing `ScanError` enum in `ImageScanner.swift` is left in place for now; its complete removal and migration of all call sites to the shared error model is handled exclusively by spec 002 (`shared-error-model`).
 - Q: What exit code convention should the CLI follow for errors? → A: Single non-zero exit code (`1`) for all application-level errors; Swift Argument Parser uses its own exit codes for parse/validation failures.
 - Q: What should `run()` do on success — print path only, or trigger the full scan/CSV pipeline? → A: Print path only — `run()` resolves & validates the directory, prints `Scanning: <path>`, then returns. Full pipeline wiring is deferred to a later integration feature.
 - Q: What out-of-scope boundaries should be declared to keep the CLI entry point focused? → A: Exclude config file support, structured logging/log levels, and colored/formatted terminal output. The CLI layer follows the Single Responsibility Principle — its only job is argument parsing, path resolution, and path validation.

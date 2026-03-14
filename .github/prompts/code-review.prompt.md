@@ -55,11 +55,13 @@ When reviewing a pull request for this project, verify each of the following ite
 
 ## Data Model & Output Contract
 
-- [ ] `ImageFile` struct conforms to `Sendable` and contains exactly: `fileName: String`, `detectedText: String`, `confidence: Float`.
-- [ ] CSV output contains exactly three columns in order: **File Name**, **Detected Text**, **Confidence Level**.
+- [ ] `ImageFile` struct conforms to `Sendable` and contains exactly: `fileName: String`, `ocrPayload: [(key: String, value: String, confidence: Float)]`, `averageConfidence: Float`.
+- [ ] CSV output uses a **pipe (`|`) delimiter** with **UTF-8+BOM** encoding.
+- [ ] CSV uses a **union-of-all-keys** column strategy: every unique key found across all `ImageFile` objects becomes a column.
+- [ ] Priority columns `Nombre`, `Email`, `Teléfono` appear first (in that order); remaining columns follow alphabetically; a final `Average Confidence` column closes each row.
 - [ ] The first row is a header row.
-- [ ] All line breaks in detected text are stripped or replaced with a single space before writing.
-- [ ] Fields containing commas or quotes are properly escaped per **RFC 4180**.
+- [ ] All line breaks in field values are stripped or replaced with a single space before writing.
+- [ ] Fields are **not quoted**; any pipe characters in field values are stripped before writing.
 
 ## Development Workflow & Code Style
 

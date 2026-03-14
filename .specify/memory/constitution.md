@@ -55,8 +55,9 @@ of each subsystem and clear separation of concerns.
 All concurrent work MUST use Swift Structured Concurrency
 (`async`/`await`). Parallel image processing MUST be implemented
 with `TaskGroup`. Concurrent OCR tasks MUST be throttled to a
-maximum of 4–8 simultaneous tasks to prevent memory pressure on
-large directories.
+maximum of `min(ProcessInfo.processInfo.activeProcessorCount, 8)`
+simultaneous tasks (the system's active CPU core count, capped at
+8) to prevent memory pressure on large directories.
 
 Unstructured concurrency (`Task { }`, `Task.detached`) is
 prohibited unless no structured alternative exists, and any such

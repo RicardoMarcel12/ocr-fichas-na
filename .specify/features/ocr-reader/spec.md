@@ -133,7 +133,7 @@ The printed header block (organization name, course title, location/sede) provid
 - **FR-006**: Key-value pairs where the value is empty, whitespace-only, or below a configurable minimum confidence threshold MUST be excluded from the output.
 - **FR-007**: Each processed image MUST produce a `FormData` object containing: the source file name, an optional header (top-of-form metadata), an ordered array of `FormField` key-value pairs, and an overall average confidence score.
 - **FR-008**: The `FormData` fields MUST preserve the spatial reading order (top-to-bottom, left-to-right) as recognized from the image.
-- **FR-009**: The OCR reader MUST conform to the `OCRProcessing` protocol (Constitution Principle II): `func process(imageURLs: [URL]) async throws -> [FormData]`.
+- **FR-009**: The OCR reader MUST conform to the `OCRProcessing` protocol (Constitution Principle II): `func process(imageURLs: [URL]) async throws -> [ImageFile]`.
 - **FR-010**: Parallel image processing MUST use `TaskGroup` with a maximum concurrency of 4–8 tasks (Constitution Principle III).
 - **FR-011**: If a `CGImage` cannot be loaded from a URL, the system MUST throw `AppError.imageLoadFailed` with the file path (Constitution Principle IV).
 - **FR-012**: If the Vision request fails, the system MUST throw `AppError.ocrFailed` with the file path and underlying error (Constitution Principle IV).
